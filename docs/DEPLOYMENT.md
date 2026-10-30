@@ -19,6 +19,9 @@ in `VALIDATION_REPORT.md`. Do not mark a step `PASS` without a command and log.
 ## 3. Pi service
 - [ ] Install `deploy/pi/halloween-pi.service` with the desktop IP; check
       `systemctl status` and `journalctl`.
+- [ ] If `systemctl status` shows `status=217/USER`, the `User=` in the unit does not
+      exist on the Pi. Set it to a real account (`id <user>`), add it to `video`
+      (`sudo usermod -aG video <user>`), and fix the `WorkingDirectory`/`ExecStart` paths.
 - [ ] `python scripts/check_network.py DESKTOP_LAN_IP --port 8765` from the Pi.
 
 ## 4. Unity and projector
