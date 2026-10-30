@@ -34,7 +34,7 @@ class PreviewWindow:
         self.label.configure(image=self.photo, text="")
         self.status.configure(
             text=f"{frame.metadata['source']} | frame {frame.metadata['frame_id']} | "
-            f"dropped {self.store.dropped_frames}"
+            f"dropped {self.store.dropped_frames} | {pose_text}"
         )
         self.root.after(1, self.refresh)
 
