@@ -21,10 +21,10 @@ MonoBehaviour:
     m_TextWithWhitespace: "Simulator\u200B"
   m_Pos:
     serializedVersion: 2
-    x: -1218
-    y: 295.33334
-    width: 921.3334
-    height: 750.6667
+    x: -2078
+    y: 78.66667
+    width: 1471.3334
+    height: 769.3333
   m_SerializedDataModeController:
     m_DataMode: 0
     m_PreferredDataMode: 0
