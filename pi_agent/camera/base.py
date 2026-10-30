@@ -8,7 +8,8 @@ class CameraFrame:
     capture_monotonic_ns: int
     width: int
     height: int
-    rgb: bytes
+    rgb: bytes | None = None
+    jpeg: bytes | None = None
 
 
 class CameraSource(Protocol):
