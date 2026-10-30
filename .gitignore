@@ -13,3 +13,4 @@ models/
 *.log
 .env
 *.egg-info/
+models/*.task

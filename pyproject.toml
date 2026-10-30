@@ -14,6 +14,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8,<9"]
+pose = ["mediapipe>=0.10", "numpy"]
 
 [tool.setuptools.packages.find]
 include = ["shared*", "pi_agent*", "desktop*"]
