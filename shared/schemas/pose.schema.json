@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Skeleton Mirror pose frame",
+  "type": "object",
+  "required": ["version", "type", "frame_id", "server_monotonic_ns", "coordinate_space", "persons"],
+  "properties": {
+    "version": { "const": 1 },
+    "type": { "const": "pose" },
+    "frame_id": { "type": "integer", "minimum": 0 },
+    "server_monotonic_ns": { "type": "integer", "minimum": 0 },
+    "coordinate_space": { "enum": ["mediapipe_world", "normalized_image"] },
+    "units": { "type": "string" },
+    "mirrored_input": { "type": "boolean" },
+    "persons": {
+      "type": "array",
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "required": ["track_id", "tracking_state", "confidence", "landmarks"],
+        "properties": {
+          "track_id": { "type": "string", "minLength": 1 },
+          "tracking_state": { "enum": ["tracked", "occluded", "lost"] },
+          "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+          "landmarks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "x", "y", "z", "visibility", "presence"],
+              "properties": {
+                "id": { "type": "integer", "minimum": 0, "maximum": 32 },
+                "x": { "type": "number" },
+                "y": { "type": "number" },
+                "z": { "type": "number" },
+                "visibility": { "type": "number", "minimum": 0, "maximum": 1 },
+                "presence": { "type": "number", "minimum": 0, "maximum": 1 }
+              },
+              "additionalProperties": false
+            },
+            "oneOf": [
+              { "maxItems": 0 },
+              { "minItems": 33, "maxItems": 33 }
+            ]
+          },
+          "events": { "type": "object", "additionalProperties": { "type": "boolean" } },
+          "bbox": {
+            "type": ["array", "null"],
+            "items": { "type": "number" },
+            "minItems": 4,
+            "maxItems": 4
+          }
+        },
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "properties": {
+              "landmarks": { "anyOf": [{ "maxItems": 0 }, { "minItems": 33 }] }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "additionalProperties": false
+}

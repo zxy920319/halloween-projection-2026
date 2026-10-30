@@ -1,0 +1,16 @@
+ingest:
+  host: 127.0.0.1
+  port: 8765
+  max_payload_bytes: 5242880
+runtime:
+  latest_frame_only: true
+  show_debug_preview: false
+pose:
+  num_poses: 1
+  max_persons: 3
+  identity_tracking: true
+publish:
+  host: 127.0.0.1
+  port: 8766
+privacy:
+  record_frames: false

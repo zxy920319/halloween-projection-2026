@@ -1,0 +1,12 @@
+from typing import Protocol
+
+from desktop.ingest import LatestFrame
+from shared.pose_schema import PoseFrame
+
+
+class PoseEstimator(Protocol):
+    """Interface for future desktop inference; MediaPipe is not wired yet."""
+
+    def estimate(self, frame: LatestFrame) -> PoseFrame:
+        """Produce a pose frame or an empty persons list when no person is found."""
+        ...

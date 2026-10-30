@@ -1,0 +1,14 @@
+camera:
+  backend: mock
+  width: 640
+  height: 480
+  fps: 15
+  device: auto
+network:
+  server_url: ws://127.0.0.1:8765/frames
+  reconnect_max_seconds: 10
+stream:
+  jpeg_quality: 75
+  max_pending_frames: 1
+privacy:
+  record_frames: false
