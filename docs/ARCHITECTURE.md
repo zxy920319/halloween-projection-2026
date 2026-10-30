@@ -14,8 +14,13 @@ side of that boundary** and does not provide a camera bypass architecture.
 - `desktop.ingest`: binary packet validation, monotonic frame ID check, one-slot
   drop-old queue.
 - `desktop.preview`: optional local in-memory preview; no image persistence.
-- `desktop.pose`: future inference interface and session-only ID allocation;
-  neither implements detection or person association.
+- `desktop.pose`: optional MediaPipe Tasks inference, confidence/geometry
+  filtering, 33-landmark output, per-track smoothing, and short-gap association
+  by normalized bounding-box center. IDs are temporary session-local labels,
+  not persistent identity recognition.
+- `unity/Assets/Scripts/Tracking`: a three-slot skeleton pool and track-to-slot
+  registry preserve character slots while track IDs remain active. This is a
+  prototype seam, not proof of reliable identity through crossings or occlusion.
 
 The desktop binds to loopback by default. For two physical devices, select the
 desktop's trusted LAN interface explicitly, restrict its inbound firewall rule
@@ -28,6 +33,8 @@ authentication on untrusted networks.
 
 V4L2 and Orbbec/OpenNI2 are explicit unsupported adapters, not silent fallback
 paths. A successful mock test does not establish Astra Pro Plus, RGB, depth,
-ARM64 SDK, timing, pose inference, Unity, projector, or site compatibility.
-Pose schema and Unity scripts establish integration seams only; multi-person
-identity association and retargeting are future work.
+ARM64 SDK, timing, real-person pose inference, projector, or site compatibility.
+Synthetic tests cover protocol/schema behavior and selected multi-person
+ordering and short-gap cases; they do not establish tracking quality under
+crossings, occlusion, changing lighting, or a live camera stream. See
+`docs/VALIDATION_REPORT.md` for current evidence and boundaries.

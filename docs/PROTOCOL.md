@@ -26,7 +26,10 @@ host-local; never subtract Pi and desktop clocks to claim one-way latency.
 `shared/pose_schema.py` defines version 1 `PoseFrame` with `persons[]`. Frames
 support at most three people; each tracked person has a session-local `track_id`,
 state, confidence, event map, and either no landmarks or exactly 33. Empty
-`persons` represents no detected people. Track association is not implemented.
+`persons` represents no detected people. The optional MediaPipe adapter assigns
+temporary track IDs using short-gap bounding-box center association; these IDs
+are not persistent identities and have not been validated through crossings or
+occlusion.
 
 See `shared/schemas/pose.schema.json` for the JSON shape. Estimated MediaPipe
 world coordinates must not be represented as measured Orbbec depth.

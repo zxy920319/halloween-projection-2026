@@ -95,6 +95,8 @@ def _estimator_with_fake_landmarker(pose_landmarks, max_persons=3):
     estimator._smooth_alpha = 1.0
     estimator._min_person_confidence = 0.5
     estimator._prev = {}
+    estimator._last_seen = {}
+    estimator._hold_seconds = 0.6
     estimator._confirm_frames = 1
     estimator._streak = 0
     estimator._landmarker = FakeLandmarker()
@@ -136,6 +138,37 @@ def test_estimator_keeps_identity_when_detector_order_changes():
         first.persons[1].track_id,
         first.persons[0].track_id,
     ]
+
+
+def test_estimator_marks_close_candidates_occluded_instead_of_tracked():
+    estimator = _estimator_with_fake_landmarker(
+        [_synthetic_pose_landmarks(0.48), _synthetic_pose_landmarks(0.52)],
+    )
+    image = BytesIO()
+    Image.new("RGB", (320, 240)).save(image, "JPEG")
+    estimator.estimate(LatestFrame({"frame_id": 1}, image.getvalue()))
+    pose = estimator.estimate(LatestFrame({"frame_id": 2}, image.getvalue()))
+
+    assert {person.tracking_state for person in pose.persons} == {"occluded"}
+
+
+def test_estimator_holds_dropped_person_as_occluded_then_releases():
+    both = [_synthetic_pose_landmarks(0.2), _synthetic_pose_landmarks(0.8)]
+    estimator = _estimator_with_fake_landmarker(both)
+    image = BytesIO()
+    Image.new("RGB", (320, 240)).save(image, "JPEG")
+    first = estimator.estimate(LatestFrame({"frame_id": 1}, image.getvalue()))
+    ids = {p.track_id for p in first.persons}
+
+    estimator._landmarker = _estimator_with_fake_landmarker(both[:1])._landmarker
+    second = estimator.estimate(LatestFrame({"frame_id": 2}, image.getvalue()))
+
+    assert {p.track_id for p in second.persons} == ids
+    assert sorted(p.tracking_state for p in second.persons) == ["occluded", "tracked"]
+
+    estimator._hold_seconds = -1.0
+    third = estimator.estimate(LatestFrame({"frame_id": 3}, image.getvalue()))
+    assert len(third.persons) == 1
 
 
 def test_estimator_emits_empty_persons_when_detection_is_absent():
