@@ -14,3 +14,4 @@ models/
 .env
 *.egg-info/
 models/*.task
+unity/Temp/
