@@ -42,6 +42,20 @@ for the project path. Unity connects to `ws://127.0.0.1:8766/poses`. Increase
 Missing model files fail with an explicit path and setup hint. A synthetic
 blank-image test does not prove that the model recognizes people.
 
+## Evaluate stability on a local video
+
+With OpenCV installed (`python -m pip install opencv-python`), run an authorized
+local clip through the pipeline in memory to measure tracking stability:
+
+```powershell
+python scripts/evaluate_video.py .\clip.mp4 --model .\models\pose_landmarker_full.task --max-persons 2
+```
+
+It reports frames, unique track IDs, occluded ratio, person-count changes, and
+likely ID switches (an ID vanishing and a new one appearing within 15 frames).
+Use it to tune `ambiguity_margin` and the hold time. It is a software
+measurement on your clip, not field acceptance.
+
 ## Verification record
 
 - Unit tests cover the versioned pose JSON, normalized 33-point output,
