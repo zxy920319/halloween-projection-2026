@@ -96,6 +96,9 @@ class V4L2CameraSource:
             stderr=subprocess.PIPE,
             bufsize=0,
         )
+        self._stderr_tail = []
+        self._stderr_thread = threading.Thread(target=self._drain_stderr, name="v4l2-stderr", daemon=True)
+        self._stderr_thread.start()
         self._thread = threading.Thread(target=self._reader, name="v4l2-reader", daemon=True)
         self._thread.start()
 
@@ -119,11 +122,26 @@ class V4L2CameraSource:
                     )
                     self._next_id += 1
                     self._cond.notify_all()
-        stderr = proc.stderr.read().decode(errors="replace").strip() if proc.stderr else ""
+        returncode = proc.wait()
+        self._stderr_thread.join(timeout=1)
+        stderr = "".join(self._stderr_tail).replace("<", "").strip()
         with self._cond:
             if not self._stopping:
-                self._error = f"v4l2-ctl exited: {stderr or 'no stderr output'}"
+                self._error = (
+                    f"v4l2-ctl exited with code {returncode} "
+                    f"(device {self.device}, {self.width}x{self.height} MJPG @ {self.fps}): "
+                    f"{stderr or 'no stderr output'}. "
+                    f"Run: v4l2-ctl -d {self.device} --list-formats-ext"
+                )
             self._cond.notify_all()
+
+    def _drain_stderr(self) -> None:
+        """Keep stderr flowing (v4l2-ctl prints a mark per frame) and remember the tail."""
+        proc = self._proc
+        assert proc is not None and proc.stderr is not None
+        for line in iter(lambda: proc.stderr.readline(), b""):
+            self._stderr_tail.append(line.decode(errors="replace"))
+            del self._stderr_tail[:-20]
 
     def read_latest(self, timeout: float = 5.0) -> CameraFrame:
         deadline = time.monotonic() + timeout
