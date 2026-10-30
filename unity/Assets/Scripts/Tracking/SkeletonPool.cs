@@ -52,6 +52,19 @@ namespace Tracking
             raisedHandLastFrame.RemoveWhere(trackId => !active.Contains(trackId));
             int count = Mathf.Min(active.Count, capacity);
             var liveSlots = new HashSet<int>();
+            foreach (var person in frame.persons)
+            {
+                if (person == null || !active.Contains(person.track_id)) continue;
+                int assigned = registry.GetOrAssign(person.track_id, capacity);
+                if (assigned >= 0 && skeletonRoots[assigned] != null) liveSlots.Add(assigned);
+            }
+            // Spread live characters on one horizontal line, ordered by stable slot.
+            var orderedSlots = new List<int>(liveSlots);
+            orderedSlots.Sort();
+            count = orderedSlots.Count;
+            Vector3 lineOrigin = skeletonRoots.Length > 0 && skeletonRoots[0] != null
+                ? skeletonRoots[0].transform.localPosition : Vector3.zero;
+            liveSlots.Clear();
             var raisedHandThisFrame = new HashSet<string>();
             foreach (var person in frame.persons)
             {
@@ -62,7 +75,9 @@ namespace Tracking
                 liveSlots.Add(slot);
                 if (!root.activeSelf) root.SetActive(true);
                 Vector3 p = root.transform.localPosition;
-                p.x = MultiPersonLayout.GetHorizontalOffset(slot, count, horizontalSpacing);
+                p.x = MultiPersonLayout.GetHorizontalOffset(orderedSlots.IndexOf(slot), count, horizontalSpacing);
+                p.y = lineOrigin.y;
+                p.z = lineOrigin.z;
                 root.transform.localPosition = p;
                 if (!driven.Contains(person.track_id)) continue;
                 var driver = root.GetComponent<SkeletonPoseDriver>();
