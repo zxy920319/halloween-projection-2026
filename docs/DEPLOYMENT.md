@@ -1,5 +1,25 @@
 # Deployment checklist
 
+## Quick path (auto-start and easy maintenance)
+
+Desktop (PowerShell, from the repo; starts at sign-in, restarts on failure):
+
+```powershell
+.\deploy\windows\halloween.ps1 install -BindAddress 100.83.94.65 -MaxPersons 3
+.\deploy\windows\halloween.ps1 start      # also: stop | restart | status | uninstall
+```
+
+Pi (starts on boot, restarts on crash; run once inside the repo after creating the venv):
+
+```bash
+sudo bash deploy/pi/install_service.sh --server ws://100.83.94.65:8765/frames
+systemctl status halloween-pi        # logs: journalctl -u halloween-pi -f
+sudo systemctl restart halloween-pi  # also: stop | start
+```
+
+To update: `git pull` on each machine, then restart the service. The scripts are
+`NOT_TESTED` on hardware until recorded in `VALIDATION_REPORT.md`.
+
 Every item below is unverified on real hardware until you record evidence for it
 in `VALIDATION_REPORT.md`. Do not mark a step `PASS` without a command and log.
 
