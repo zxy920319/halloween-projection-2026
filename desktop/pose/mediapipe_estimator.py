@@ -16,6 +16,30 @@ def _clamp01(value: float | None, default: float = 0.0) -> float:
     return min(1.0, max(0.0, float(value)))
 
 
+CORE = (11, 12, 23, 24)
+
+
+def is_plausible_person(lm: list[Landmark], min_core_visibility: float = 0.7) -> bool:
+    """Reject hallucinated skeletons (clothes on chairs, etc.) using joint visibility and body geometry."""
+    if sum(lm[i].visibility for i in CORE) / len(CORE) < min_core_visibility:
+        return False
+    if lm[0].visibility < 0.5:
+        return False
+    sx = abs(lm[11].x - lm[12].x)
+    mid_sh = ((lm[11].x + lm[12].x) / 2, (lm[11].y + lm[12].y) / 2)
+    mid_hip = ((lm[23].x + lm[24].x) / 2, (lm[23].y + lm[24].y) / 2)
+    torso = ((mid_sh[0] - mid_hip[0]) ** 2 + (mid_sh[1] - mid_hip[1]) ** 2) ** 0.5
+    if sx < 0.02 or torso < 0.05:
+        return False
+    if not 0.6 <= torso / sx <= 4.0:
+        return False
+    # Head above shoulders, shoulders above hips (upright person).
+    if not (lm[0].y < mid_sh[1] < mid_hip[1]):
+        return False
+    # Hips of an upright body sit roughly below the shoulders, not far to the side.
+    return abs(mid_sh[0] - mid_hip[0]) < torso * 0.8
+
+
 class MediaPipePoseEstimator:
     def __init__(
         self,
@@ -23,6 +47,7 @@ class MediaPipePoseEstimator:
         max_persons: int = MAX_PERSONS,
         smooth_alpha: float = 0.5,
         min_person_confidence: float = 0.5,
+        confirm_frames: int = 6,
     ) -> None:
         import mediapipe as mp
         from mediapipe.tasks.python import BaseOptions, vision
@@ -39,6 +64,8 @@ class MediaPipePoseEstimator:
         self._smooth_alpha = smooth_alpha
         self._min_person_confidence = min_person_confidence
         self._prev: dict[int, list[Landmark]] = {}
+        self._confirm_frames = confirm_frames
+        self._streak = 0
         self._landmarker = vision.PoseLandmarker.create_from_options(options)
         self._ids = SessionTrackIdFactory()
         # Slot-based IDs: stable only while the same slot keeps detecting someone.
@@ -72,7 +99,7 @@ class MediaPipePoseEstimator:
             if len(landmarks) != 33:
                 continue
             confidence = sum(l.visibility for l in landmarks) / 33
-            if confidence < self._min_person_confidence:
+            if confidence < self._min_person_confidence or not is_plausible_person(landmarks):
                 continue
             landmarks = self._smooth(slot, landmarks)
             if slot not in self._slot_ids:
@@ -88,6 +115,9 @@ class MediaPipePoseEstimator:
                     bbox=[min(xs), min(ys), max(xs), max(ys)],
                 )
             )
+        self._streak = self._streak + 1 if persons else 0
+        if self._streak < self._confirm_frames:
+            persons = []
         for slot in list(self._slot_ids):
             if slot >= len(persons):
                 del self._slot_ids[slot]
