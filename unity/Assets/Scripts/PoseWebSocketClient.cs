@@ -16,12 +16,9 @@ public sealed class PoseWebSocketClient : MonoBehaviour
     private const int MaxMessageBytes = 256 * 1024;
     private readonly ConcurrentQueue<string> inbox = new ConcurrentQueue<string>();
     private CancellationTokenSource cts;
-<<<<<<< HEAD
-=======
     private volatile bool isConnected;
 
     public bool IsConnected => isConnected;
->>>>>>> origin/master
 
     private void OnEnable()
     {
@@ -31,10 +28,7 @@ public sealed class PoseWebSocketClient : MonoBehaviour
 
     private void OnDisable()
     {
-<<<<<<< HEAD
-=======
         isConnected = false;
->>>>>>> origin/master
         cts?.Cancel();
         cts?.Dispose();
         cts = null;
@@ -62,10 +56,6 @@ public sealed class PoseWebSocketClient : MonoBehaviour
                 using (var socket = new ClientWebSocket())
                 {
                     await socket.ConnectAsync(new Uri(url), token);
-<<<<<<< HEAD
-                    Debug.Log($"Pose socket connected: {url}");
-                    await ReceiveLoopAsync(socket, token);
-=======
                     isConnected = true;
                     Debug.Log($"Pose socket connected: {url}");
                     try
@@ -76,7 +66,6 @@ public sealed class PoseWebSocketClient : MonoBehaviour
                     {
                         isConnected = false;
                     }
->>>>>>> origin/master
                 }
             }
             catch (OperationCanceledException)

@@ -72,17 +72,6 @@ namespace Tracking
                 int slot = registry.GetOrAssign(person.track_id, capacity);
                 if (slot < 0 || skeletonRoots[slot] == null) continue;
                 GameObject root = skeletonRoots[slot];
-<<<<<<< HEAD
-                root.SetActive(true);
-                var drawer = root.GetComponent<SkeletonDrawer>();
-                if (drawer != null)
-                {
-                    drawer.Draw(person.landmarks);
-                }
-                Vector3 position = root.transform.localPosition;
-                position.x = MultiPersonLayout.GetHorizontalOffset(slot, visibleCount, horizontalSpacing);
-                root.transform.localPosition = position;
-=======
                 liveSlots.Add(slot);
                 if (!root.activeSelf) root.SetActive(true);
                 Vector3 p = root.transform.localPosition;
@@ -108,7 +97,6 @@ namespace Tracking
                             new PoseActionEventArgs(person.track_id, slot, PoseActionEvent.HandRaised));
                     }
                 }
->>>>>>> origin/master
             }
             raisedHandLastFrame.Clear();
             foreach (string trackId in raisedHandThisFrame)
