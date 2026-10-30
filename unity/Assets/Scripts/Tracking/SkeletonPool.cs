@@ -12,6 +12,9 @@ namespace Tracking
         [SerializeField, Min(0f)] private float horizontalSpacing = 1.5f;
         [SerializeField, Range(0f, 1f)] private float actionMinVisibility = 0.6f;
         [SerializeField, Range(0.01f, 1f)] private float raisedHandMargin = 0.12f;
+        [SerializeField] private bool showIdleSkeletonWithoutTracking = true;
+        [SerializeField, Min(0.1f)] private float idleTimeoutSeconds = 1f;
+        private float lastFrameRealtime = float.NegativeInfinity;
         private readonly TrackedPersonRegistry registry = new TrackedPersonRegistry();
         private readonly HashSet<string> raisedHandLastFrame = new HashSet<string>();
 
@@ -33,9 +36,18 @@ namespace Tracking
             }
         }
 
+        // Shows slot 0 in rest pose while no pose server is feeding frames, so the scene is never blank.
+        private void Update()
+        {
+            if (!showIdleSkeletonWithoutTracking || skeletonRoots.Length == 0 || skeletonRoots[0] == null) return;
+            bool idle = Time.realtimeSinceStartup - lastFrameRealtime > idleTimeoutSeconds;
+            if (idle && !skeletonRoots[0].activeSelf) skeletonRoots[0].SetActive(true);
+        }
+
         public void ApplyFrame(PoseFrame frame)
         {
             if (frame == null || frame.persons == null) return;
+            lastFrameRealtime = Time.realtimeSinceStartup;
             int capacity = Mathf.Min(skeletonRoots.Length, 3);
             var active = new HashSet<string>();
             foreach (var person in frame.persons)
