@@ -1,3 +1,5 @@
+# Edit User, WorkingDirectory, ExecStart paths and the --server IP for your Pi
+# before installing. User must exist (`id <user>`) and be in the `video` group.
 [Unit]
 Description=Halloween Projection Pi camera sender
 After=network-online.target

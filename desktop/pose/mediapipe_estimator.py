@@ -80,6 +80,8 @@ class MediaPipePoseEstimator:
         self._smooth_alpha = smooth_alpha
         self._min_person_confidence = min_person_confidence
         self._prev: dict[str, list[Landmark]] = {}
+        self._last_seen: dict[str, float] = {}
+        self._hold_seconds = 0.6
         self._confirm_frames = confirm_frames
         self._streak = 0
         self._landmarker = vision.PoseLandmarker.create_from_options(options)
@@ -114,32 +116,48 @@ class MediaPipePoseEstimator:
             confidence = sum(l.visibility for l in landmarks) / 33
             if confidence < self._min_person_confidence or not is_plausible_person(landmarks):
                 continue
-            xs = [l.x for l in landmarks]
-            ys = [l.y for l in landmarks]
+            xs = [l.x for l in landmarks if l.visibility >= 0.5] or [l.x for l in landmarks]
+            ys = [l.y for l in landmarks if l.visibility >= 0.5] or [l.y for l in landmarks]
             detections.append((landmarks, confidence, [min(xs), min(ys), max(xs), max(ys)]))
 
-        track_ids = self._identity.assign(
-            [bbox for _, _, bbox in detections],
-            time.monotonic(),
-        )
+        now = time.monotonic()
+        track_ids = self._identity.assign([bbox for _, _, bbox in detections], now)
         persons: list[TrackedPerson] = []
+        ambiguous = self._identity.ambiguous_track_ids
         for track_id, (landmarks, confidence, bbox) in zip(track_ids, detections):
             landmarks = self._smooth(track_id, landmarks)
+            self._last_seen[track_id] = now
             persons.append(
                 TrackedPerson(
                     track_id=track_id,
-                    tracking_state="tracked",
+                    tracking_state="occluded" if track_id in ambiguous else "tracked",
                     confidence=confidence,
                     landmarks=landmarks,
                     bbox=bbox,
                 )
             )
-        self._prev = {
-            track_id: landmarks
-            for track_id, landmarks in self._prev.items()
-            if track_id in self._identity.active_track_ids
-        }
-        self._streak = self._streak + 1 if persons else 0
+        # Briefly keep people the detector dropped for a frame or two, frozen as
+        # "occluded", so their skeleton slot is not released and re-created.
+        seen_now = set(track_ids)
+        for track_id, landmarks in self._prev.items():
+            if (
+                track_id not in seen_now
+                and track_id in self._identity.active_track_ids
+                and now - self._last_seen.get(track_id, -1e9) <= self._hold_seconds
+                and len(persons) < self._max_persons
+            ):
+                persons.append(
+                    TrackedPerson(
+                        track_id=track_id,
+                        tracking_state="occluded",
+                        confidence=0.0,
+                        landmarks=landmarks,
+                    )
+                )
+        active = self._identity.active_track_ids
+        self._prev = {t: l for t, l in self._prev.items() if t in active}
+        self._last_seen = {t: s for t, s in self._last_seen.items() if t in active}
+        self._streak = self._streak + 1 if track_ids else 0
         if self._streak < self._confirm_frames:
             persons = []
 

@@ -10,7 +10,7 @@ regenerate the model files from the repository root:
 blender --background --python .\unity\Blender\generate_halloween_skeleton.py -- --out .\unity\Assets\Models
 ```
 
-The generator writes `HalloweenSkeleton.blend`, `.fbx`, and `.glb`. It checks
+The generator writes `HalloweenSkeleton.blend`, `.fbx`, and `.glb` (only the `.fbx` is used by Unity, so the `.glb` is not committed). It checks
 that every mesh vertex has one 1.0 bone weight and runs a Blender arm-pose
 deformation smoke test before saving/exporting. An FBX export error is fatal.
 Open the `.blend` in Blender and inspect the Armature modifier, matching vertex
