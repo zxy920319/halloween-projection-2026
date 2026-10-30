@@ -41,14 +41,16 @@ namespace Tracking
         {
             new Segment("Spine", "Chest", new[] { 23, 24 }, new[] { 11, 12 }, false),
             new Segment("Neck", "Head", new[] { 11, 12 }, new[] { 7, 8 }, false),
-            new Segment("LeftUpperArm", "LeftLowerArm", new[] { 11 }, new[] { 13 }, true, new Vector3(0.10f, -1f, 0f)),
-            new Segment("LeftLowerArm", "LeftHand", new[] { 13 }, new[] { 15 }, true, new Vector3(0.04f, -1f, -0.08f)),
-            new Segment("RightUpperArm", "RightLowerArm", new[] { 12 }, new[] { 14 }, true, new Vector3(0.10f, -1f, 0f)),
-            new Segment("RightLowerArm", "RightHand", new[] { 14 }, new[] { 16 }, true, new Vector3(0.04f, -1f, -0.08f)),
-            new Segment("LeftUpperLeg", "LeftLowerLeg", new[] { 23 }, new[] { 25 }, true),
-            new Segment("LeftLowerLeg", "LeftFoot", new[] { 25 }, new[] { 27 }, true),
-            new Segment("RightUpperLeg", "RightLowerLeg", new[] { 24 }, new[] { 26 }, true),
-            new Segment("RightLowerLeg", "RightFoot", new[] { 26 }, new[] { 28 }, true),
+            // The rig faces the camera, so it acts as a mirror: the user's left limb drives
+            // the rig's right bone, which appears on the same side of the screen.
+            new Segment("RightUpperArm", "RightLowerArm", new[] { 11 }, new[] { 13 }, true, new Vector3(0.10f, -1f, 0f)),
+            new Segment("RightLowerArm", "RightHand", new[] { 13 }, new[] { 15 }, true, new Vector3(0.04f, -1f, -0.08f)),
+            new Segment("LeftUpperArm", "LeftLowerArm", new[] { 12 }, new[] { 14 }, true, new Vector3(0.10f, -1f, 0f)),
+            new Segment("LeftLowerArm", "LeftHand", new[] { 14 }, new[] { 16 }, true, new Vector3(0.04f, -1f, -0.08f)),
+            new Segment("RightUpperLeg", "RightLowerLeg", new[] { 23 }, new[] { 25 }, true),
+            new Segment("RightLowerLeg", "RightFoot", new[] { 25 }, new[] { 27 }, true),
+            new Segment("LeftUpperLeg", "LeftLowerLeg", new[] { 24 }, new[] { 26 }, true),
+            new Segment("LeftLowerLeg", "LeftFoot", new[] { 26 }, new[] { 28 }, true),
         };
 
         private sealed class DrivenBone
