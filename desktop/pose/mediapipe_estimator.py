@@ -123,12 +123,13 @@ class MediaPipePoseEstimator:
             time.monotonic(),
         )
         persons: list[TrackedPerson] = []
+        ambiguous = self._identity.ambiguous_track_ids
         for track_id, (landmarks, confidence, bbox) in zip(track_ids, detections):
             landmarks = self._smooth(track_id, landmarks)
             persons.append(
                 TrackedPerson(
                     track_id=track_id,
-                    tracking_state="tracked",
+                    tracking_state="occluded" if track_id in ambiguous else "tracked",
                     confidence=confidence,
                     landmarks=landmarks,
                     bbox=bbox,

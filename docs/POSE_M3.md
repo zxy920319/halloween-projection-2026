@@ -47,7 +47,7 @@ blank-image test does not prove that the model recognizes people.
 - Unit tests cover the versioned pose JSON, normalized 33-point output,
   confidence/geometry filtering, person limit, detection-order association,
   short-gap recovery, track expiry, and invalid boxes.
-- In this environment, the complete suite reported **33 passed, 1 skipped**.
+- In this environment, the complete suite reported **41 passed, 1 skipped**.
   The skipped real-model test had no model file under `models/`. MediaPipe
   1.2.0 is installed, but no Pi RGB stream or consented local test video was
   available. Therefore real-person inference, live FPS, one/two/three-person

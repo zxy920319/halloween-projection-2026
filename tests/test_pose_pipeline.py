@@ -138,6 +138,18 @@ def test_estimator_keeps_identity_when_detector_order_changes():
     ]
 
 
+def test_estimator_marks_close_candidates_occluded_instead_of_tracked():
+    estimator = _estimator_with_fake_landmarker(
+        [_synthetic_pose_landmarks(0.48), _synthetic_pose_landmarks(0.52)],
+    )
+    image = BytesIO()
+    Image.new("RGB", (320, 240)).save(image, "JPEG")
+    estimator.estimate(LatestFrame({"frame_id": 1}, image.getvalue()))
+    pose = estimator.estimate(LatestFrame({"frame_id": 2}, image.getvalue()))
+
+    assert {person.tracking_state for person in pose.persons} == {"occluded"}
+
+
 def test_estimator_emits_empty_persons_when_detection_is_absent():
     estimator = _estimator_with_fake_landmarker([])
     image = BytesIO()

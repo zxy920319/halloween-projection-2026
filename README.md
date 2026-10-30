@@ -64,10 +64,12 @@ It does not install packages, change drivers, or alter firmware. See
 |---|---|
 | M0 probe script and compatibility reporting | `MOCK_PASS` for script inspection; actual Pi probe `NOT_TESTED` |
 | M1 mock JPEG framing, WebSocket ingest, drop-old queue, reconnect | Local automated checks; no physical two-device test |
-| M2 real camera from Pi | `BLOCKED_HARDWARE` until Pi/Astra probe output is available |
+| M2 real camera from Pi | `NOT_TESTED` until Pi/Astra probe output and a real RGB stream are available |
 | M3 pose inference | MediaPipe Tasks adapter, 33-point output, confidence filtering, preview, and short-gap ID association implemented; unit tests pass. No model file or Pi/test-video stream available for real-person validation |
 | M4 Unity renderer | Supplied rigged FBX prefab and 3-slot pose driver; synthetic Unity 6 batch validation passed. Blender export, live human/WebSocket test not performed |
 | M5 projection | Calibration scene, mirror controls, local pose effects, health heartbeat, and restart examples implemented; projector and 30-minute field acceptance not tested |
+| M6 two-person tracking | Prototype association and three-slot Unity registry/layout are implemented. Synthetic ordering and short-gap tests pass; live crossings, occlusion, and identity acceptance remain `NOT_TESTED` |
+| M7 three-person mode | Three-person software capacity is configurable, but tracking quality and site feasibility remain `NOT_TESTED` |
 
 Real-person pose inference and robust identity tracking still require a local
 official MediaPipe model and Pi RGB or compliant test-video validation.

@@ -24,4 +24,6 @@ unauthenticated `ws://` on the LAN. Do not expose port 8765 publicly. Set the
 Pi sender's `--server` URL to `ws://DESKTOP_LAN_IP:8765/frames`.
 
 `--preview` uses Tk and Pillow, displays in memory, and does not record frames.
-Inference and pose publication are not implemented yet.
+Optional pose inference requires the `pose` extra and a locally supplied
+official MediaPipe Pose Landmarker `.task` model. See
+[`POSE_M3.md`](POSE_M3.md) for installation, startup, and model guidance.

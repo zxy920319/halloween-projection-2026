@@ -1,6 +1,8 @@
 # Calibration plan
 
-Calibration is not implemented or validated yet. Before projection use:
+Unity includes a visual calibration grid, but automatic keystone correction and
+site-specific optical calibration are not implemented or field-validated.
+Before projection use:
 
 - Confirm actual reflective-film optical type and mounting geometry.
 - Separately test camera-input mirror, display mirror, and optical reflection

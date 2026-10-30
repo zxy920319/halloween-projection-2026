@@ -40,10 +40,13 @@ namespace Tracking
             if (frame == null || frame.persons == null) return;
             int capacity = Mathf.Min(skeletonRoots.Length, 3);
             var active = new HashSet<string>();
+            var driven = new HashSet<string>();
             foreach (var person in frame.persons)
             {
-                if (person != null && !string.IsNullOrWhiteSpace(person.track_id)
-                    && person.tracking_state == "tracked") active.Add(person.track_id);
+                if (person == null || string.IsNullOrWhiteSpace(person.track_id)) continue;
+                // Occluded (uncertain identity) tracks keep their slot but are frozen, not re-driven.
+                if (person.tracking_state == "tracked") { active.Add(person.track_id); driven.Add(person.track_id); }
+                else if (person.tracking_state == "occluded") active.Add(person.track_id);
             }
             registry.RetainOnly(active);
             raisedHandLastFrame.RemoveWhere(trackId => !active.Contains(trackId));
@@ -58,6 +61,10 @@ namespace Tracking
                 GameObject root = skeletonRoots[slot];
                 liveSlots.Add(slot);
                 if (!root.activeSelf) root.SetActive(true);
+                Vector3 p = root.transform.localPosition;
+                p.x = MultiPersonLayout.GetHorizontalOffset(slot, count, horizontalSpacing);
+                root.transform.localPosition = p;
+                if (!driven.Contains(person.track_id)) continue;
                 var driver = root.GetComponent<SkeletonPoseDriver>();
                 if (driver == null) driver = root.GetComponentInChildren<SkeletonPoseDriver>();
                 if (driver != null) driver.ApplyPose(person.landmarks, frame.mirrored_input);
@@ -66,9 +73,6 @@ namespace Tracking
                     var drawer = root.GetComponent<SkeletonDrawer>();
                     if (drawer != null) drawer.Draw(person.landmarks);
                 }
-                Vector3 p = root.transform.localPosition;
-                p.x = MultiPersonLayout.GetHorizontalOffset(slot, count, horizontalSpacing);
-                root.transform.localPosition = p;
                 if (IsHandRaised(person.landmarks))
                 {
                     raisedHandThisFrame.Add(person.track_id);
