@@ -150,6 +150,8 @@ public static class SkeletonPoolValidation
             throw new InvalidOperationException("Could not instantiate imported FBX model.");
         }
         modelInstance.transform.SetParent(character.transform, false);
+        // The imported rig faces away from the camera; turn it to face the projection camera.
+        modelInstance.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
 
         var driver = character.AddComponent<Tracking.SkeletonPoseDriver>();
         var serializedDriver = new SerializedObject(driver);
@@ -200,7 +202,7 @@ public static class SkeletonPoolValidation
         pool.ApplyFrame(Frame(Person("one", 0f)));
         AssertActive(roots, 1);
         AssertPosition(roots[0], 0f);
-        Transform drivenBone = FindDescendant(roots[0].transform, "LeftUpperArm");
+        Transform drivenBone = FindDescendant(roots[0].transform, "RightUpperArm");
         Quaternion restRotation = drivenBone.localRotation;
         Tracking.SkeletonPoseDriver firstDriver = roots[0].GetComponent<Tracking.SkeletonPoseDriver>();
         for (int i = 0; i < 10; i++)
@@ -225,8 +227,8 @@ public static class SkeletonPoolValidation
         AssertPosition(roots[1], 0.75f);
         InvokePoseUpdate(roots[0].GetComponent<Tracking.SkeletonPoseDriver>(), 0.1f);
         InvokePoseUpdate(roots[1].GetComponent<Tracking.SkeletonPoseDriver>(), 0.1f);
-        Quaternion firstRotation = FindDescendant(roots[0].transform, "LeftUpperArm").localRotation;
-        Quaternion secondRotation = FindDescendant(roots[1].transform, "LeftUpperArm").localRotation;
+        Quaternion firstRotation = FindDescendant(roots[0].transform, "RightUpperArm").localRotation;
+        Quaternion secondRotation = FindDescendant(roots[1].transform, "RightUpperArm").localRotation;
         if (Quaternion.Angle(firstRotation, secondRotation) < 1f)
         {
             throw new InvalidOperationException("Two people's distinct landmarks did not produce independent arm rotations.");
@@ -242,7 +244,7 @@ public static class SkeletonPoolValidation
             InvokePoseUpdate(roots[i].GetComponent<Tracking.SkeletonPoseDriver>(), 0.1f);
         }
         Quaternion[] threePersonRotations = roots
-            .Select(root => FindDescendant(root.transform, "LeftUpperArm").localRotation)
+            .Select(root => FindDescendant(root.transform, "RightUpperArm").localRotation)
             .ToArray();
         for (int i = 0; i < threePersonRotations.Length; i++)
         {

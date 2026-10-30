@@ -24,17 +24,19 @@ namespace Tracking
         }
 
         // MediaPipe 33-landmark indices. Order matters: parent before child.
+        // The rig faces the camera, so it acts as a mirror: the user's left limb (odd landmarks)
+        // drives the rig's right bone, which appears on the same side of the screen.
         private static readonly Pair[] Mapping =
         {
             new Pair("Spine",  23, 11), // approximate torso; 11 is left shoulder
-            new Pair("LeftUpperArm", 11, 13),
-            new Pair("LeftLowerArm", 13, 15),
-            new Pair("RightUpperArm", 12, 14),
-            new Pair("RightLowerArm", 14, 16),
-            new Pair("LeftUpperLeg", 23, 25),
-            new Pair("LeftLowerLeg", 25, 27),
-            new Pair("RightUpperLeg", 24, 26),
-            new Pair("RightLowerLeg", 26, 28),
+            new Pair("RightUpperArm", 11, 13),
+            new Pair("RightLowerArm", 13, 15),
+            new Pair("LeftUpperArm", 12, 14),
+            new Pair("LeftLowerArm", 14, 16),
+            new Pair("RightUpperLeg", 23, 25),
+            new Pair("RightLowerLeg", 25, 27),
+            new Pair("LeftUpperLeg", 24, 26),
+            new Pair("LeftLowerLeg", 26, 28),
         };
 
         private sealed class DrivenBone
