@@ -47,6 +47,11 @@ python scripts/smoke_test.py
 To check desktop TCP reachability from the Pi without sending frame data:
 `python scripts/check_network.py DESKTOP_LAN_IP --port 8765`.
 
+## Run with the real camera
+
+Start order is desktop, Pi, then Unity. The exact commands are in
+[`docs/RUNBOOK.md`](docs/RUNBOOK.md).
+
 ## Raspberry Pi camera probe
 
 On the Pi 5, run the read-only probe:
