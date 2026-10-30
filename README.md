@@ -6,10 +6,10 @@ The Raspberry Pi 5 remains in the camera-to-renderer path:
 Camera/mock on Pi 5 -> JPEG over LAN WebSocket -> desktop pose service -> Unity
 ```
 
-The repository currently implements the **M0 software probe and M1 mock JPEG
-transport**. No Raspberry Pi, Astra Pro Plus, projector, or Unity Editor was
-available for this implementation, so hardware and Unity runtime behavior are
-not claimed as verified.
+The repository implements the **M0 software probe and M1 mock JPEG transport**
+and includes M4/M5 Unity assets and synthetic batch validations. Unity 6 batch
+mode was available, but no Raspberry Pi, Astra Pro Plus, or physical projector
+was available; hardware behavior is not claimed as verified.
 
 ## Requirements
 
@@ -65,9 +65,13 @@ It does not install packages, change drivers, or alter firmware. See
 | M0 probe script and compatibility reporting | `MOCK_PASS` for script inspection; actual Pi probe `NOT_TESTED` |
 | M1 mock JPEG framing, WebSocket ingest, drop-old queue, reconnect | Local automated checks; no physical two-device test |
 | M2 real camera from Pi | `BLOCKED_HARDWARE` until Pi/Astra probe output is available |
-| M3 pose inference | Protocol/interface groundwork only; no model inference implemented |
-| M4 Unity renderer | Minimal track-based skeleton pool scaffold; Unity Editor not available |
+| M3 pose inference | MediaPipe Tasks adapter, 33-point output, confidence filtering, preview, and short-gap ID association implemented; unit tests pass. No model file or Pi/test-video stream available for real-person validation |
+| M4 Unity renderer | Supplied rigged FBX prefab and 3-slot pose driver; synthetic Unity 6 batch validation passed. Blender export, live human/WebSocket test not performed |
+| M5 projection | Calibration scene, mirror controls, local pose effects, health heartbeat, and restart examples implemented; projector and 30-minute field acceptance not tested |
 
-The `persons[]` pose schema and Unity track registry are scaffolding, not
-implemented multi-person identity tracking. Follow the remaining milestones in
-`PROJECT_SPEC.md`.
+Real-person pose inference and robust identity tracking still require a local
+official MediaPipe model and Pi RGB or compliant test-video validation.
+`track_id` is temporary and not a production multi-person identity tracker.
+The M4/M5 Unity checks use synthetic pose frames; the projector, Pi camera,
+human movement, and end-to-end optical latency still require field validation.
+See `docs/POSE_M3.md` and the remaining acceptance steps in `PROJECT_SPEC.md`.

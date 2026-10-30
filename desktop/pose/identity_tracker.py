@@ -1,5 +1,8 @@
-"""Session-local track ID allocation; this does not associate detections."""
+"""Session-local IDs and short-lived detection association."""
 
+from dataclasses import dataclass
+from itertools import product
+from math import hypot, isfinite
 from uuid import uuid4
 
 
@@ -10,3 +13,120 @@ class SessionTrackIdFactory:
     def new_track_id(self) -> str:
         """Return a temporary, non-identifying ID unique within this session."""
         return f"{self._session_id}:{uuid4()}"
+
+
+@dataclass
+class _Track:
+    track_id: str
+    bbox: tuple[float, float, float, float]
+    last_seen: float
+
+
+class PoseIdentityTracker:
+    """Associate detections by normalized box center for brief gaps and reordering."""
+
+    def __init__(
+        self,
+        max_center_distance: float = 0.25,
+        lost_track_timeout: float = 1.0,
+        max_retained_tracks: int = 6,
+        id_factory: SessionTrackIdFactory | None = None,
+    ) -> None:
+        if max_center_distance <= 0 or lost_track_timeout <= 0 or max_retained_tracks < 1:
+            raise ValueError("tracking distance/timeout must be positive and track limit at least one")
+        self._max_center_distance = max_center_distance
+        self._lost_track_timeout = lost_track_timeout
+        self._max_retained_tracks = max_retained_tracks
+        self._id_factory = id_factory or SessionTrackIdFactory()
+        self._tracks: dict[str, _Track] = {}
+
+    @property
+    def active_track_ids(self) -> set[str]:
+        return set(self._tracks)
+
+    def assign(
+        self,
+        detections: list[list[float]],
+        now: float,
+    ) -> list[str]:
+        """Return one unique temporary ID per detection, preserving input order."""
+        if not isfinite(now):
+            raise ValueError("tracking timestamp must be finite")
+        if len(detections) > 3:
+            raise ValueError("pose tracking supports at most three detections")
+        self._tracks = {
+            track_id: track
+            for track_id, track in self._tracks.items()
+            if now - track.last_seen <= self._lost_track_timeout
+        }
+        boxes = [self._validate_bbox(box) for box in detections]
+        tracks = list(self._tracks.values())
+        distances = [
+            [self._center_distance(box, track.bbox) for track in tracks]
+            for box in boxes
+        ]
+
+        best_matches: dict[int, int] = {}
+        best_score = (-1, float("inf"))
+        for choices in product(range(-1, len(tracks)), repeat=len(boxes)):
+            matched = [track_index for track_index in choices if track_index >= 0]
+            if len(set(matched)) != len(matched):
+                continue
+            if any(
+                track_index >= 0
+                and distances[detection_index][track_index] > self._max_center_distance
+                for detection_index, track_index in enumerate(choices)
+            ):
+                continue
+            score = (
+                len(matched),
+                sum(
+                    distances[detection_index][track_index]
+                    for detection_index, track_index in enumerate(choices)
+                    if track_index >= 0
+                ),
+            )
+            if score[0] > best_score[0] or (
+                score[0] == best_score[0] and score[1] < best_score[1]
+            ):
+                best_score = score
+                best_matches = {
+                    detection_index: track_index
+                    for detection_index, track_index in enumerate(choices)
+                    if track_index >= 0
+                }
+
+        track_ids: list[str] = []
+        for detection_index, bbox in enumerate(boxes):
+            track_index = best_matches.get(detection_index)
+            if track_index is None:
+                track_id = self._id_factory.new_track_id()
+            else:
+                track_id = tracks[track_index].track_id
+            self._tracks[track_id] = _Track(track_id, bbox, now)
+            track_ids.append(track_id)
+        if len(self._tracks) > self._max_retained_tracks:
+            oldest = sorted(self._tracks.values(), key=lambda track: track.last_seen)
+            for track in oldest[: len(self._tracks) - self._max_retained_tracks]:
+                del self._tracks[track.track_id]
+        return track_ids
+
+    @staticmethod
+    def _validate_bbox(box: list[float]) -> tuple[float, float, float, float]:
+        if len(box) != 4:
+            raise ValueError("bbox must contain [left, top, right, bottom]")
+        left, top, right, bottom = map(float, box)
+        if not all(map(isfinite, (left, top, right, bottom))):
+            raise ValueError("bbox coordinates must be finite")
+        if right < left or bottom < top:
+            raise ValueError("bbox coordinates are inverted")
+        return left, top, right, bottom
+
+    @staticmethod
+    def _center_distance(
+        first: tuple[float, float, float, float],
+        second: tuple[float, float, float, float],
+    ) -> float:
+        first_center = ((first[0] + first[2]) / 2, (first[1] + first[3]) / 2)
+        second_center = ((second[0] + second[2]) / 2, (second[1] + second[3]) / 2)
+        return hypot(first_center[0] - second_center[0], first_center[1] - second_center[1])

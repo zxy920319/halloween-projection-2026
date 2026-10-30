@@ -1,37 +1,29 @@
 using System.Collections.Generic;
+using System;
 using UnityEngine;
 
 namespace Tracking
 {
+    // Drop-in replacement for uploaded SkeletonPool.cs.
+    // Prefers a real rig controller; retains SkeletonDrawer as debug fallback.
     public sealed class SkeletonPool : MonoBehaviour
     {
         [SerializeField] private GameObject[] skeletonRoots = new GameObject[3];
         [SerializeField, Min(0f)] private float horizontalSpacing = 1.5f;
-
+        [SerializeField, Range(0f, 1f)] private float actionMinVisibility = 0.6f;
+        [SerializeField, Range(0.01f, 1f)] private float raisedHandMargin = 0.12f;
         private readonly TrackedPersonRegistry registry = new TrackedPersonRegistry();
+        private readonly HashSet<string> raisedHandLastFrame = new HashSet<string>();
 
-        public void ApplyFrame(PoseFrame frame)
+        public event Action<PoseActionEventArgs> PoseActionDetected;
+
+        public GameObject GetSkeletonRoot(int slot)
         {
-            if (frame == null || frame.persons == null)
-            {
-                return;
-            }
+            return slot >= 0 && slot < skeletonRoots.Length ? skeletonRoots[slot] : null;
+        }
 
-            int capacity = Mathf.Min(skeletonRoots.Length, 3);
-            var activeIds = new HashSet<string>();
-            int visibleCount = 0;
-            foreach (TrackedPerson person in frame.persons)
-            {
-                if (person == null || string.IsNullOrWhiteSpace(person.track_id) ||
-                    person.tracking_state != "tracked")
-                {
-                    continue;
-                }
-                activeIds.Add(person.track_id);
-                visibleCount++;
-            }
-
-            registry.RetainOnly(activeIds);
+        private void Awake()
+        {
             foreach (GameObject root in skeletonRoots)
             {
                 if (root != null)
@@ -39,30 +31,78 @@ namespace Tracking
                     root.SetActive(false);
                 }
             }
+        }
 
-            foreach (TrackedPerson person in frame.persons)
+        public void ApplyFrame(PoseFrame frame)
+        {
+            if (frame == null || frame.persons == null) return;
+            int capacity = Mathf.Min(skeletonRoots.Length, 3);
+            var active = new HashSet<string>();
+            foreach (var person in frame.persons)
             {
-                if (person == null || !activeIds.Contains(person.track_id))
-                {
-                    continue;
-                }
-                int slot = registry.GetOrAssign(person.track_id, capacity);
-                if (slot < 0 || skeletonRoots[slot] == null)
-                {
-                    continue;
-                }
-
-                GameObject root = skeletonRoots[slot];
-                root.SetActive(true);
-                var drawer = root.GetComponent<SkeletonDrawer>();
-                if (drawer != null)
-                {
-                    drawer.Draw(person.landmarks);
-                }
-                Vector3 position = root.transform.localPosition;
-                position.x = MultiPersonLayout.GetHorizontalOffset(slot, visibleCount, horizontalSpacing);
-                root.transform.localPosition = position;
+                if (person != null && !string.IsNullOrWhiteSpace(person.track_id)
+                    && person.tracking_state == "tracked") active.Add(person.track_id);
             }
+            registry.RetainOnly(active);
+            raisedHandLastFrame.RemoveWhere(trackId => !active.Contains(trackId));
+            int count = Mathf.Min(active.Count, capacity);
+            var liveSlots = new HashSet<int>();
+            var raisedHandThisFrame = new HashSet<string>();
+            foreach (var person in frame.persons)
+            {
+                if (person == null || !active.Contains(person.track_id)) continue;
+                int slot = registry.GetOrAssign(person.track_id, capacity);
+                if (slot < 0 || skeletonRoots[slot] == null) continue;
+                GameObject root = skeletonRoots[slot];
+                liveSlots.Add(slot);
+                if (!root.activeSelf) root.SetActive(true);
+                var driver = root.GetComponent<SkeletonPoseDriver>();
+                if (driver == null) driver = root.GetComponentInChildren<SkeletonPoseDriver>();
+                if (driver != null) driver.ApplyPose(person.landmarks, frame.mirrored_input);
+                else
+                {
+                    var drawer = root.GetComponent<SkeletonDrawer>();
+                    if (drawer != null) drawer.Draw(person.landmarks);
+                }
+                Vector3 p = root.transform.localPosition;
+                p.x = MultiPersonLayout.GetHorizontalOffset(slot, count, horizontalSpacing);
+                root.transform.localPosition = p;
+                if (IsHandRaised(person.landmarks))
+                {
+                    raisedHandThisFrame.Add(person.track_id);
+                    if (!raisedHandLastFrame.Contains(person.track_id))
+                    {
+                        PoseActionDetected?.Invoke(
+                            new PoseActionEventArgs(person.track_id, slot, PoseActionEvent.HandRaised));
+                    }
+                }
+            }
+            raisedHandLastFrame.Clear();
+            foreach (string trackId in raisedHandThisFrame)
+            {
+                raisedHandLastFrame.Add(trackId);
+            }
+            for (int i = 0; i < skeletonRoots.Length; i++)
+                if (skeletonRoots[i] != null && !liveSlots.Contains(i) && skeletonRoots[i].activeSelf)
+                    skeletonRoots[i].SetActive(false);
+        }
+
+        private bool IsHandRaised(PoseLandmark[] landmarks)
+        {
+            if (landmarks == null || landmarks.Length != 33)
+            {
+                return false;
+            }
+            return WristAboveShoulder(landmarks, 15, 11) || WristAboveShoulder(landmarks, 16, 12);
+        }
+
+        private bool WristAboveShoulder(PoseLandmark[] landmarks, int wristIndex, int shoulderIndex)
+        {
+            PoseLandmark wrist = landmarks[wristIndex];
+            PoseLandmark shoulder = landmarks[shoulderIndex];
+            return wrist != null && shoulder != null &&
+                wrist.visibility >= actionMinVisibility && shoulder.visibility >= actionMinVisibility &&
+                wrist.y <= shoulder.y - raisedHandMargin;
         }
     }
 }
