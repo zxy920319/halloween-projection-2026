@@ -54,6 +54,11 @@ namespace Tracking
 
                 GameObject root = skeletonRoots[slot];
                 root.SetActive(true);
+                var drawer = root.GetComponent<SkeletonDrawer>();
+                if (drawer != null)
+                {
+                    drawer.Draw(person.landmarks);
+                }
                 Vector3 position = root.transform.localPosition;
                 position.x = MultiPersonLayout.GetHorizontalOffset(slot, visibleCount, horizontalSpacing);
                 root.transform.localPosition = position;
