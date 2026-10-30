@@ -43,7 +43,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2628328e28bba974f8ddbb5481ded2bf, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::Tracking.SkeletonPoseDriver
   rigRoot: {fileID: 5954830173894414080}
   minVisibility: 0.5
