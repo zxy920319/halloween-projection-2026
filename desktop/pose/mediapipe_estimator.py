@@ -26,6 +26,9 @@ class MediaPipePoseEstimator:
             base_options=BaseOptions(model_asset_path=model_path),
             running_mode=vision.RunningMode.VIDEO,
             num_poses=min(max_persons, MAX_PERSONS),
+            min_pose_detection_confidence=0.3,
+            min_pose_presence_confidence=0.3,
+            min_tracking_confidence=0.3,
         )
         self._landmarker = vision.PoseLandmarker.create_from_options(options)
         self._ids = SessionTrackIdFactory()

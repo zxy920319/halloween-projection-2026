@@ -81,10 +81,13 @@ def main() -> None:
         raise SystemExit("timed out waiting for the frame server to start")
     if startup_error:
         raise SystemExit(f"could not start frame server: {startup_error[0]}")
+    process = build_pose_processor(args) if args.pose else None
     if args.preview:
         from desktop.preview import PreviewWindow
 
-        PreviewWindow(ingest.store).run(thread)
+        PreviewWindow(ingest.store, process).run(thread)
+    elif process is not None:
+        run_pose_loop(ingest, process, thread)
     else:
         try:
             while thread.is_alive():
