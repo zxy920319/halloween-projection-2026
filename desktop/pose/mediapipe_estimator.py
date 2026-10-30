@@ -17,7 +17,13 @@ def _clamp01(value: float | None, default: float = 0.0) -> float:
 
 
 class MediaPipePoseEstimator:
-    def __init__(self, model_path: str, max_persons: int = MAX_PERSONS) -> None:
+    def __init__(
+        self,
+        model_path: str,
+        max_persons: int = MAX_PERSONS,
+        smooth_alpha: float = 0.5,
+        min_person_confidence: float = 0.5,
+    ) -> None:
         import mediapipe as mp
         from mediapipe.tasks.python import BaseOptions, vision
 
@@ -26,10 +32,13 @@ class MediaPipePoseEstimator:
             base_options=BaseOptions(model_asset_path=model_path),
             running_mode=vision.RunningMode.VIDEO,
             num_poses=min(max_persons, MAX_PERSONS),
-            min_pose_detection_confidence=0.3,
-            min_pose_presence_confidence=0.3,
-            min_tracking_confidence=0.3,
+            min_pose_detection_confidence=0.5,
+            min_pose_presence_confidence=0.5,
+            min_tracking_confidence=0.5,
         )
+        self._smooth_alpha = smooth_alpha
+        self._min_person_confidence = min_person_confidence
+        self._prev: dict[int, list[Landmark]] = {}
         self._landmarker = vision.PoseLandmarker.create_from_options(options)
         self._ids = SessionTrackIdFactory()
         # Slot-based IDs: stable only while the same slot keeps detecting someone.
@@ -47,7 +56,8 @@ class MediaPipePoseEstimator:
         result = self._landmarker.detect_for_video(image, ts_ms)
 
         persons: list[TrackedPerson] = []
-        for slot, points in enumerate(result.pose_landmarks[:MAX_PERSONS]):
+        for points in result.pose_landmarks[:MAX_PERSONS]:
+            slot = len(persons)
             landmarks = [
                 Landmark(
                     id=i,
@@ -61,9 +71,12 @@ class MediaPipePoseEstimator:
             ]
             if len(landmarks) != 33:
                 continue
+            confidence = sum(l.visibility for l in landmarks) / 33
+            if confidence < self._min_person_confidence:
+                continue
+            landmarks = self._smooth(slot, landmarks)
             if slot not in self._slot_ids:
                 self._slot_ids[slot] = self._ids.new_track_id()
-            confidence = sum(l.visibility for l in landmarks) / 33
             xs = [l.x for l in landmarks]
             ys = [l.y for l in landmarks]
             persons.append(
@@ -78,6 +91,7 @@ class MediaPipePoseEstimator:
         for slot in list(self._slot_ids):
             if slot >= len(persons):
                 del self._slot_ids[slot]
+                self._prev.pop(slot, None)
 
         pose = PoseFrame(
             version=1,
@@ -87,6 +101,24 @@ class MediaPipePoseEstimator:
         )
         validate_pose_frame(pose)
         return pose
+
+    def _smooth(self, slot: int, landmarks: list[Landmark]) -> list[Landmark]:
+        prev = self._prev.get(slot)
+        if prev is not None and self._smooth_alpha < 1.0:
+            a = self._smooth_alpha
+            landmarks = [
+                Landmark(
+                    n.id,
+                    a * n.x + (1 - a) * o.x,
+                    a * n.y + (1 - a) * o.y,
+                    a * n.z + (1 - a) * o.z,
+                    n.visibility,
+                    n.presence,
+                )
+                for n, o in zip(landmarks, prev)
+            ]
+        self._prev[slot] = landmarks
+        return landmarks
 
     def close(self) -> None:
         self._landmarker.close()
