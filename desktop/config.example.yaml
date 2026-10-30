@@ -6,9 +6,11 @@ runtime:
   latest_frame_only: true
   show_debug_preview: false
 pose:
+  model_path: models/pose_landmarker_lite.task
   num_poses: 1
   max_persons: 3
   identity_tracking: true
+  lost_track_timeout_ms: 1000
 publish:
   host: 127.0.0.1
   port: 8766
