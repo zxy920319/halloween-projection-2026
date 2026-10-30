@@ -78,6 +78,11 @@ namespace Tracking
             newestMirroredInput = mirroredInput;
         }
 
+        public void ClearPose()
+        {
+            newest = null;
+        }
+
         private void LateUpdate()
         {
             UpdatePose(Time.deltaTime);
@@ -85,8 +90,14 @@ namespace Tracking
 
         private void UpdatePose(float deltaTime)
         {
-            if (newest == null || rigRoot == null) return;
+            if (rigRoot == null) return;
             float blend = 1f - Mathf.Exp(-rotationSpeed * deltaTime);
+            if (newest == null)
+            {
+                foreach (var item in driven)
+                    item.Bone.localRotation = Quaternion.Slerp(item.Bone.localRotation, item.RestLocalRotation, blend);
+                return;
+            }
             bool flipX = mirrorInput != newestMirroredInput;
             foreach (var item in driven)
             {
