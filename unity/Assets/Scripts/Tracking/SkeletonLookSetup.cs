@@ -10,7 +10,7 @@ namespace Tracking
     public sealed class SkeletonLookSetup : MonoBehaviour
     {
         private static readonly Color Bone = new Color(0.72f, 0.66f, 0.54f);
-        private static readonly Color Shadow = new Color(0.20f, 0.17f, 0.14f);
+        private static readonly Color Shadow = new Color(0.38f, 0.32f, 0.25f);
         private static readonly Color Socket = new Color(0.01f, 0.005f, 0.005f);
         private static readonly Color EyeRed = new Color(1f, 0.02f, 0.01f);
 

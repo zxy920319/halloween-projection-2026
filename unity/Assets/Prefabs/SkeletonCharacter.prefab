@@ -49,6 +49,13 @@ MonoBehaviour:
   minVisibility: 0.5
   mirrorInput: 1
   rotationSpeed: 16
+  depthWeight: 0.7
+  enableTurn: 1
+  enableJump: 1
+  turnSpeed: 7
+  jumpSpeed: 18
+  jumpDeadZone: 0.08
+  maxJumpHeight: 1.4
 --- !u!1001 &6136566823153068267
 PrefabInstance:
   m_ObjectHideFlags: 0
