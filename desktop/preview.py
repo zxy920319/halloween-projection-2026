@@ -56,7 +56,7 @@ class PreviewWindow:
         draw = ImageDraw.Draw(image)
         w, h = image.size
         for person in pose.persons:
-            pts = {l.id: (l.x * w, l.y * h) for l in person.landmarks if l.visibility > 0.3}
+            pts = {l.id: (l.x * w, l.y * h) for l in person.landmarks if l.visibility > 0.5}
             for a, b in POSE_EDGES:
                 if a in pts and b in pts:
                     draw.line([pts[a], pts[b]], fill=(0, 255, 0), width=3)
