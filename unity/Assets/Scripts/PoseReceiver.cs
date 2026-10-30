@@ -4,6 +4,10 @@ public sealed class PoseReceiver : MonoBehaviour
 {
     [SerializeField] private Tracking.SkeletonPool skeletonPool;
 
+    public int AcceptedFrames { get; private set; }
+    public long LastFrameId { get; private set; } = -1;
+    public float LastAcceptedRealtime { get; private set; } = -1f;
+
     public void ApplyJson(string json)
     {
         if (string.IsNullOrWhiteSpace(json))
@@ -33,5 +37,8 @@ public sealed class PoseReceiver : MonoBehaviour
         {
             skeletonPool.ApplyFrame(frame);
         }
+        AcceptedFrames++;
+        LastFrameId = frame.frame_id;
+        LastAcceptedRealtime = Time.realtimeSinceStartup;
     }
 }

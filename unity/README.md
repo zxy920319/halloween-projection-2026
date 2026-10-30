@@ -1,11 +1,43 @@
-# Unity scaffold (M4)
+# Unity Halloween skeleton integration
 
-Copy `Assets/Scripts` into a Unity LTS project (2022.3+; uses `System.Net.WebSockets`, no extra packages).
+This folder contains the protocol-compatible Unity scripts, Blender source,
+supplied model outputs, and a tested character prefab. To regenerate from the
+repository root:
 
-Scene setup:
-1. Create three empty GameObjects (`Skeleton0..2`) and add `Tracking/SkeletonDrawer` to each. Assign a simple unlit material (e.g. Sprites/Default) to `lineMaterial`.
-2. Create an empty `Tracking` object, add `SkeletonPool`, and assign the three skeleton roots.
-3. Add `PoseReceiver` (assign the pool) and `PoseWebSocketClient` (assign the receiver) to the same or another object.
-4. Run the desktop with `python -m desktop.main --host 0.0.0.0 --port 8765 --pose`, then press Play. The client connects to `ws://127.0.0.1:8766/poses`.
+```powershell
+blender --background --python .\unity\Blender\generate_halloween_skeleton.py -- --out .\unity\Assets\Models
+```
 
-Status: NOT_TESTED in Unity (no Unity editor was available when written). Bone lines are a placeholder; Humanoid retargeting of a rigged skeleton model is a later step. See `../docs/UNITY_SETUP.md`.
+The generator writes `HalloweenSkeleton.blend`, `.fbx`, and `.glb` (only the `.fbx` is used by Unity, so the `.glb` is not committed). It checks
+that every mesh vertex has one 1.0 bone weight and runs a Blender arm-pose
+deformation smoke test before saving/exporting. An FBX export error is fatal.
+Open the `.blend` in Blender and inspect the Armature modifier, matching vertex
+groups, and `LeftUpperArm` / `LeftLowerLeg` in Pose Mode as a visual check.
+
+The supplied FBX is in `Assets/Models/HalloweenSkeleton.fbx`; the matching
+`Assets/Prefabs/SkeletonCharacter.prefab` has the model and pose driver wired
+with stable `.meta` references. Copy `Assets/Scripts`, `Assets/Models`, and
+`Assets/Prefabs` into a Unity LTS project (2022.3+; Unity 6 is also suitable).
+Copy `Assets/Editor` too if you want to run the batch validation.
+Set the FBX Rig to **Generic**. Assign up to three prefab instances to
+`SkeletonPool`; keep `PoseReceiver` and `PoseWebSocketClient` connected as
+before. The pool prefers the pose driver and falls back to `SkeletonDrawer`
+for roots without a rig. Do not add an Animator that writes to the same bones.
+
+The retargeter uses normalized-image x/y landmarks for a basic 2.5D limb pose;
+it is not calibrated 3D IK. `mirrorInput` is an additional per-character
+horizontal flip and is combined with the message's existing `mirrored_input`
+flag. The WebSocket endpoint and JSON schema are unchanged. See
+`../docs/UNITY_SETUP.md` for the full import and verification procedure.
+
+`Assets/Editor/SkeletonPoolValidation.cs` provides a batch-mode Unity check
+for FBX rig/skin/material import, prefab creation, and synthetic 1/2/3-person
+pool-driven poses. Its exact results and the Blender/Play Mode validation
+limits are recorded in `../docs/UNITY_SETUP.md`.
+
+M5 adds the generated `Assets/Scenes/ProjectionCalibration.unity` scene,
+`Assets/Scripts/Projection`, local raised-hand effects, projection heartbeat,
+and matching Pi/Windows restart examples. In play mode use **M** to toggle
+optical mirroring, **C** to show/hide the alignment grid, and **F** to toggle
+fullscreen. See `../docs/PROJECTION_M5.md` for setup, operations, and the
+physical projector latency/release checklist.

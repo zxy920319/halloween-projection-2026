@@ -1,0 +1,21 @@
+# Edit User, WorkingDirectory, ExecStart paths and the --server IP for your Pi
+# before installing. User must exist (`id <user>`) and be in the `video` group.
+[Unit]
+Description=Halloween Projection Pi camera sender
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=halloween
+Group=video
+WorkingDirectory=/opt/halloween-projection
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/halloween-projection/.venv/bin/python -m pi_agent.main --server ws://192.168.1.100:8765/frames --backend v4l2 --device auto --width 640 --height 480 --fps 30
+Restart=on-failure
+RestartSec=3
+StartLimitIntervalSec=60
+StartLimitBurst=10
+
+[Install]
+WantedBy=multi-user.target
