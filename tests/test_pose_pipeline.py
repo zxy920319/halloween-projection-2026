@@ -48,3 +48,4 @@ def test_publisher_broadcasts_to_client():
             return await asyncio.wait_for(ws.recv(), 2)
 
     assert asyncio.run(run()) == '{"hello": 1}'
+

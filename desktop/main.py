@@ -15,7 +15,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--preview", action="store_true", help="show a local Tk preview window")
     parser.add_argument("--pose", action="store_true", help="run MediaPipe pose and publish /poses")
-    parser.add_argument("--model", default="models/pose_landmarker_lite.task")
+    parser.add_argument("--model", default="models/pose_landmarker_full.task")
     parser.add_argument("--pose-host", default="127.0.0.1")
     parser.add_argument("--pose-port", type=int, default=8766)
     return parser.parse_args()
