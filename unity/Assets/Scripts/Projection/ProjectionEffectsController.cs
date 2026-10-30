@@ -70,6 +70,7 @@ namespace Projection
             var effectObject = new GameObject("HandRaisedParticles_" + slot);
             effectObject.transform.SetParent(transform, false);
             var particles = effectObject.AddComponent<ParticleSystem>();
+            particles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             var main = particles.main;
             main.playOnAwake = false;
             main.loop = false;
