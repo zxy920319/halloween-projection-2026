@@ -8,7 +8,21 @@ using UnityEngine.SceneManagement;
 public static class ProjectionSceneBuilder
 {
     public const string ScenePath = "Assets/Scenes/ProjectionCalibration.unity";
+    public const string ScenePathV2 = "Assets/Scenes/ProjectionCalibrationV2.unity";
     private const string CharacterPrefabPath = "Assets/Prefabs/SkeletonCharacter.prefab";
+
+    [MenuItem("Halloween Projection/Build Calibration Scene V2 (Position Tracking)")]
+    public static void BuildCalibrationSceneV2()
+    {
+        Scene scene = BuildScene(true);
+        Directory.CreateDirectory("Assets/Scenes");
+        if (!EditorSceneManager.SaveScene(scene, ScenePathV2))
+        {
+            throw new InvalidOperationException($"Could not save projection scene at {ScenePathV2}.");
+        }
+        AssetDatabase.SaveAssets();
+        Debug.Log($"Built projection calibration scene V2 at {ScenePathV2}.");
+    }
 
     [MenuItem("Halloween Projection/Build Calibration Scene")]
     public static void BuildCalibrationScene()
@@ -23,7 +37,7 @@ public static class ProjectionSceneBuilder
         Debug.Log($"Built projection calibration scene at {ScenePath}.");
     }
 
-    public static Scene BuildScene()
+    public static Scene BuildScene(bool positionTracking = false)
     {
         GameObject characterPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(CharacterPrefabPath);
         if (characterPrefab == null)
@@ -62,34 +76,61 @@ public static class ProjectionSceneBuilder
         light.intensity = 1f;
         keyLight.transform.rotation = Quaternion.Euler(30f, -25f, 0f);
 
-        var poolObject = new GameObject("SkeletonPool");
-        var pool = poolObject.AddComponent<Tracking.SkeletonPool>();
-        var roots = new GameObject[3];
-        for (int i = 0; i < roots.Length; i++)
+        Tracking.SkeletonPool pool = null;
+        if (!positionTracking)
         {
-            roots[i] = PrefabUtility.InstantiatePrefab(characterPrefab) as GameObject;
-            if (roots[i] == null)
+            var poolObject = new GameObject("SkeletonPool");
+            pool = poolObject.AddComponent<Tracking.SkeletonPool>();
+            var roots = new GameObject[3];
+            for (int i = 0; i < roots.Length; i++)
             {
-                throw new InvalidOperationException($"Could not instantiate SkeletonCharacter prefab {i}.");
+                roots[i] = PrefabUtility.InstantiatePrefab(characterPrefab) as GameObject;
+                if (roots[i] == null)
+                {
+                    throw new InvalidOperationException($"Could not instantiate SkeletonCharacter prefab {i}.");
+                }
+                roots[i].name = "SkeletonCharacter_" + i;
+                roots[i].transform.position = new Vector3(0f, -0.85f, 0f);
+                roots[i].SetActive(false);
+                SceneManager.MoveGameObjectToScene(roots[i], scene);
             }
-            roots[i].name = "SkeletonCharacter_" + i;
-            roots[i].transform.position = new Vector3(0f, -0.85f, 0f);
-            roots[i].SetActive(false);
-            SceneManager.MoveGameObjectToScene(roots[i], scene);
+            SetGameObjectArray(pool, "skeletonRoots", roots);
         }
-        SetGameObjectArray(pool, "skeletonRoots", roots);
 
         var receiverObject = new GameObject("PoseReceiver");
         var receiver = receiverObject.AddComponent<PoseReceiver>();
-        SetObjectReference(receiver, "skeletonPool", pool);
+        if (positionTracking)
+        {
+            var poolV2Object = new GameObject("SkeletonPoolV2");
+            var poolV2 = poolV2Object.AddComponent<Tracking.SkeletonPoolV2>();
+            GameObject root = PrefabUtility.InstantiatePrefab(characterPrefab) as GameObject;
+            if (root == null)
+            {
+                throw new InvalidOperationException("Could not instantiate SkeletonCharacter prefab.");
+            }
+            root.name = "SkeletonCharacter";
+            root.transform.position = new Vector3(0f, -0.85f, 0f);
+            root.SetActive(false);
+            SceneManager.MoveGameObjectToScene(root, scene);
+            SetObjectReference(poolV2, "skeletonRoot", root);
+            SetObjectReference(poolV2, "screenCamera", camera);
+            SetObjectReference(receiver, "skeletonPoolV2", poolV2);
+        }
+        else
+        {
+            SetObjectReference(receiver, "skeletonPool", pool);
+        }
 
         var clientObject = new GameObject("PoseWebSocketClient");
         var client = clientObject.AddComponent<PoseWebSocketClient>();
         SetObjectReference(client, "receiver", receiver);
 
-        var effectsObject = new GameObject("ProjectionEffects");
-        var effects = effectsObject.AddComponent<Projection.ProjectionEffectsController>();
-        SetObjectReference(effects, "skeletonPool", pool);
+        if (!positionTracking)
+        {
+            var effectsObject = new GameObject("ProjectionEffects");
+            var effects = effectsObject.AddComponent<Projection.ProjectionEffectsController>();
+            SetObjectReference(effects, "skeletonPool", pool);
+        }
 
         var monitorObject = new GameObject("ProjectionRuntimeMonitor");
         var monitor = monitorObject.AddComponent<Projection.ProjectionRuntimeMonitor>();

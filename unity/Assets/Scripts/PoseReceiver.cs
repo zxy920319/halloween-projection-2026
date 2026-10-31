@@ -3,6 +3,7 @@ using UnityEngine;
 public sealed class PoseReceiver : MonoBehaviour
 {
     [SerializeField] private Tracking.SkeletonPool skeletonPool;
+    [SerializeField] private Tracking.SkeletonPoolV2 skeletonPoolV2;
 
     public int AcceptedFrames { get; private set; }
     public long LastFrameId { get; private set; } = -1;
@@ -36,6 +37,10 @@ public sealed class PoseReceiver : MonoBehaviour
         if (skeletonPool != null)
         {
             skeletonPool.ApplyFrame(frame);
+        }
+        if (skeletonPoolV2 != null)
+        {
+            skeletonPoolV2.ApplyFrame(frame);
         }
         AcceptedFrames++;
         LastFrameId = frame.frame_id;

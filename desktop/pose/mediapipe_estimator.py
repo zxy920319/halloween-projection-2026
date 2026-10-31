@@ -41,6 +41,33 @@ def is_plausible_person(lm: list[Landmark], min_core_visibility: float = 0.7) ->
     return abs(mid_sh[0] - mid_hip[0]) < torso * 0.8
 
 
+def _overlap_ratio(a: list[float], b: list[float]) -> float:
+    """Intersection area over the smaller box's area (1.0 = one box fully inside the other)."""
+    iw = min(a[2], b[2]) - max(a[0], b[0])
+    ih = min(a[3], b[3]) - max(a[1], b[1])
+    if iw <= 0 or ih <= 0:
+        return 0.0
+    smaller = min((a[2] - a[0]) * (a[3] - a[1]), (b[2] - b[0]) * (b[3] - b[1]))
+    return iw * ih / smaller if smaller > 0 else 1.0
+
+
+def _bbox_of(landmarks: list[Landmark]) -> list[float]:
+    xs = [l.x for l in landmarks if l.visibility >= 0.5] or [l.x for l in landmarks]
+    ys = [l.y for l in landmarks if l.visibility >= 0.5] or [l.y for l in landmarks]
+    return [min(xs), min(ys), max(xs), max(ys)]
+
+
+def suppress_duplicates(
+    detections: list[tuple[list[Landmark], float, list[float]]], max_overlap: float = 0.45
+) -> list[tuple[list[Landmark], float, list[float]]]:
+    """Drop ghost skeletons that overlap a more confident detection (one body, several poses)."""
+    kept: list[tuple[list[Landmark], float, list[float]]] = []
+    for det in sorted(detections, key=lambda d: d[1], reverse=True):
+        if all(_overlap_ratio(det[2], k[2]) < max_overlap for k in kept):
+            kept.append(det)
+    return kept
+
+
 class MediaPipePoseEstimator:
     def __init__(
         self,
@@ -119,6 +146,7 @@ class MediaPipePoseEstimator:
             xs = [l.x for l in landmarks if l.visibility >= 0.5] or [l.x for l in landmarks]
             ys = [l.y for l in landmarks if l.visibility >= 0.5] or [l.y for l in landmarks]
             detections.append((landmarks, confidence, [min(xs), min(ys), max(xs), max(ys)]))
+        detections = suppress_duplicates(detections)
 
         now = time.monotonic()
         track_ids = self._identity.assign([bbox for _, _, bbox in detections], now)
@@ -145,6 +173,10 @@ class MediaPipePoseEstimator:
                 and track_id in self._identity.active_track_ids
                 and now - self._last_seen.get(track_id, -1e9) <= self._hold_seconds
                 and len(persons) < self._max_persons
+                and not any(
+                    p.bbox is not None and _overlap_ratio(p.bbox, _bbox_of(landmarks)) >= 0.3
+                    for p in persons
+                )
             ):
                 persons.append(
                     TrackedPerson(
@@ -173,18 +205,26 @@ class MediaPipePoseEstimator:
     def _smooth(self, track_id: str, landmarks: list[Landmark]) -> list[Landmark]:
         prev = self._prev.get(track_id)
         if prev is not None and self._smooth_alpha < 1.0:
-            a = self._smooth_alpha
-            landmarks = [
-                Landmark(
-                    n.id,
-                    a * n.x + (1 - a) * o.x,
-                    a * n.y + (1 - a) * o.y,
-                    a * n.z + (1 - a) * o.z,
-                    n.visibility,
-                    n.presence,
+            # Adaptive EMA: heavy smoothing for jitter, light for real motion
+            # (keeps fast movement responsive without per-frame flicker).
+            lo = self._smooth_alpha * 0.4
+            hi = min(1.0, self._smooth_alpha + 0.4)
+            out = []
+            for n, o in zip(landmarks, prev):
+                speed = ((n.x - o.x) ** 2 + (n.y - o.y) ** 2) ** 0.5
+                a = lo + (hi - lo) * min(1.0, speed / 0.05)
+                av = 0.5
+                out.append(
+                    Landmark(
+                        n.id,
+                        a * n.x + (1 - a) * o.x,
+                        a * n.y + (1 - a) * o.y,
+                        a * n.z + (1 - a) * o.z,
+                        av * n.visibility + (1 - av) * o.visibility,
+                        n.presence,
+                    )
                 )
-                for n, o in zip(landmarks, prev)
-            ]
+            landmarks = out
         self._prev[track_id] = landmarks
         return landmarks
 

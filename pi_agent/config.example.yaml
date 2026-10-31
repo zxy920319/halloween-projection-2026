@@ -5,7 +5,7 @@ camera:
   fps: 15
   device: auto
 network:
-  server_url: ws://127.0.0.1:8765/frames
+  server_url: ws://100.83.94.65:8765/frames
   reconnect_max_seconds: 10
 stream:
   jpeg_quality: 75

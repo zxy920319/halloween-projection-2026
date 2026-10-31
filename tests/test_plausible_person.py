@@ -26,3 +26,12 @@ def test_rejects_head_below_shoulders():
 
 def test_rejects_degenerate_torso():
     assert not is_plausible_person(body({23: (0.42, 0.36, 0.95), 24: (0.58, 0.36, 0.95)}))
+
+
+def test_suppress_duplicates_keeps_most_confident_overlapping_pose():
+    from desktop.pose.mediapipe_estimator import suppress_duplicates
+
+    a = ([], 0.9, [0.3, 0.1, 0.6, 0.9])
+    ghost = ([], 0.6, [0.32, 0.15, 0.58, 0.85])
+    other = ([], 0.7, [0.7, 0.1, 0.95, 0.9])
+    assert suppress_duplicates([ghost, other, a]) == [a, other]
