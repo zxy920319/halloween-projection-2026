@@ -9,11 +9,16 @@ namespace Tracking
     {
         [SerializeField] private GameObject skeletonRoot;
         [SerializeField] private Camera screenCamera;
-        [SerializeField, Min(0f)] private float edgeMargin = 0.6f;
+        [SerializeField, Min(0.1f)] private float skeletonScale = 1.5f;
+        [SerializeField, Min(0f)] private float edgeMargin = 0.9f;
         [SerializeField] private float xOffset;
         [SerializeField, Min(0.01f)] private float xScale = 1f;
         [SerializeField] private bool invertX;
-        [SerializeField, Min(0.01f)] private float smoothTime = 0.12f;
+        [SerializeField, Min(0.01f)] private float smoothTime = 0.3f;
+        [SerializeField, Min(0f)] private float maxSpeed = 3f;
+        [SerializeField, Min(0f)] private float targetDeadZone = 0.05f;
+        [SerializeField, Range(0f, 30f)] private float leanDegrees = 8f;
+        [SerializeField, Min(0.1f)] private float leanSpeed = 6f;
         [SerializeField, Min(0f)] private float lostTimeoutSeconds = 0.75f;
         [SerializeField, Range(0f, 1f)] private float anchorMinVisibility = 0.5f;
         [SerializeField, Range(0f, 1f)] private float actionMinVisibility = 0.6f;
@@ -31,9 +36,15 @@ namespace Tracking
         public string CurrentTrackId => currentTrackId;
         public bool IsShowing => skeletonRoot != null && skeletonRoot.activeSelf;
 
+        private Vector3 baseScale = Vector3.one;
+        private float currentLean;
+
         private void Awake()
         {
-            if (skeletonRoot != null) skeletonRoot.SetActive(false);
+            if (skeletonRoot == null) return;
+            baseScale = skeletonRoot.transform.localScale;
+            skeletonRoot.transform.localScale = baseScale * skeletonScale;
+            skeletonRoot.SetActive(false);
         }
 
         public void ApplyFrame(PoseFrame frame)
@@ -49,12 +60,17 @@ namespace Tracking
             currentTrackId = person.track_id;
             if (TryGetAnchorX(person.landmarks, out float normalizedX))
             {
-                targetX = HorizontalScreenMapper.Map(normalizedX, frame.mirrored_input, HalfWidth(),
-                                                    xOffset, xScale, invertX);
+                float mapped = HorizontalScreenMapper.Map(normalizedX, frame.mirrored_input, HalfWidth(),
+                                                          xOffset, xScale, invertX);
                 if (firstFrame)
                 {
+                    targetX = mapped;
                     SetX(targetX);
                     velocityX = 0f;
+                }
+                else if (Mathf.Abs(mapped - targetX) > targetDeadZone)
+                {
+                    targetX = mapped; // ignore small landmark jitter so the figure doesn't tremble
                 }
             }
             if (!skeletonRoot.activeSelf) skeletonRoot.SetActive(true);
@@ -75,8 +91,13 @@ namespace Tracking
                 Hide();
                 return;
             }
-            float x = Mathf.SmoothDamp(skeletonRoot.transform.localPosition.x, targetX, ref velocityX, smoothTime);
+            float x = Mathf.SmoothDamp(skeletonRoot.transform.localPosition.x, targetX, ref velocityX,
+                                       smoothTime, maxSpeed);
             SetX(x);
+            // Lean slightly into the direction of travel for a more natural walk.
+            float lean = -Mathf.Clamp(velocityX / Mathf.Max(0.01f, maxSpeed), -1f, 1f) * leanDegrees;
+            currentLean = Mathf.Lerp(currentLean, lean, 1f - Mathf.Exp(-leanSpeed * Time.deltaTime));
+            skeletonRoot.transform.localRotation = Quaternion.Euler(0f, 0f, currentLean);
         }
 
         private void Hide()
@@ -84,6 +105,8 @@ namespace Tracking
             var driver = skeletonRoot.GetComponentInChildren<SkeletonPoseDriver>(true);
             if (driver != null) driver.ClearPose();
             skeletonRoot.SetActive(false);
+            skeletonRoot.transform.localRotation = Quaternion.identity;
+            currentLean = 0f;
             currentTrackId = null;
             handRaisedLastFrame = false;
         }
