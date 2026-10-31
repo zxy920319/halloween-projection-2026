@@ -29,10 +29,9 @@ namespace Tracking
             public string Name, TipName;
             public int[] From, To;
             public bool UseDepth;
-            public Vector3? RestDirection; // x is multiplied by the bone's outward side.
-            public Segment(string name, string tip, int[] from, int[] to, bool depth, Vector3? rest = null)
+            public Segment(string name, string tip, int[] from, int[] to, bool depth)
             {
-                Name = name; TipName = tip; From = from; To = to; UseDepth = depth; RestDirection = rest;
+                Name = name; TipName = tip; From = from; To = to; UseDepth = depth;
             }
         }
 
@@ -43,10 +42,10 @@ namespace Tracking
             new Segment("Neck", "Head", new[] { 11, 12 }, new[] { 7, 8 }, false),
             // The rig faces the camera, so it acts as a mirror: the user's left limb drives
             // the rig's right bone, which appears on the same side of the screen.
-            new Segment("RightUpperArm", "RightLowerArm", new[] { 11 }, new[] { 13 }, true, new Vector3(0.10f, -1f, 0f)),
-            new Segment("RightLowerArm", "RightHand", new[] { 13 }, new[] { 15 }, true, new Vector3(0.04f, -1f, -0.08f)),
-            new Segment("LeftUpperArm", "LeftLowerArm", new[] { 12 }, new[] { 14 }, true, new Vector3(0.10f, -1f, 0f)),
-            new Segment("LeftLowerArm", "LeftHand", new[] { 14 }, new[] { 16 }, true, new Vector3(0.04f, -1f, -0.08f)),
+            new Segment("RightUpperArm", "RightLowerArm", new[] { 11 }, new[] { 13 }, true),
+            new Segment("RightLowerArm", "RightHand", new[] { 13 }, new[] { 15 }, true),
+            new Segment("LeftUpperArm", "LeftLowerArm", new[] { 12 }, new[] { 14 }, true),
+            new Segment("LeftLowerArm", "LeftHand", new[] { 14 }, new[] { 16 }, true),
             new Segment("RightUpperLeg", "RightLowerLeg", new[] { 23 }, new[] { 25 }, true),
             new Segment("RightLowerLeg", "RightFoot", new[] { 25 }, new[] { 27 }, true),
             new Segment("LeftUpperLeg", "LeftLowerLeg", new[] { 24 }, new[] { 26 }, true),
@@ -109,7 +108,6 @@ namespace Tracking
                     Debug.LogWarning("Missing bone child for " + entry.Name, this);
                     continue;
                 }
-                if (entry.RestDirection.HasValue) ApplyNaturalRest(bone, tip, entry.RestDirection.Value);
                 driven.Add(new DrivenBone { Bone = bone, Tip = tip, RestLocalRotation = bone.localRotation,
                                             Segment = entry });
             }
@@ -117,17 +115,6 @@ namespace Tracking
                 rigTorsoLength = Mathf.Max(0.1f, Vector3.Distance(hips.position, neck.position));
             Debug.Log($"SkeletonPoseDriver: bound {driven.Count}/{Mapping.Length} pose segments.", this);
             if (GetComponent<SkeletonLookSetup>() == null) gameObject.AddComponent<SkeletonLookSetup>();
-        }
-
-        // The imported rig is modelled in a T-pose; rotate the arms so the idle pose hangs naturally.
-        private void ApplyNaturalRest(Transform bone, Transform tip, Vector3 direction)
-        {
-            Vector3 current = tip.position - bone.position;
-            if (current.sqrMagnitude < 1e-8f) return;
-            float outward = Vector3.Dot(current, transform.right) < 0f ? -1f : 1f;
-            Vector3 target = transform.TransformDirection(
-                new Vector3(direction.x * outward, direction.y, direction.z)).normalized;
-            bone.rotation = Quaternion.FromToRotation(current, target) * bone.rotation;
         }
 
         public void ApplyPose(PoseLandmark[] landmarks, bool mirroredInput = false)

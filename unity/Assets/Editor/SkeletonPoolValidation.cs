@@ -61,7 +61,7 @@ public static class SkeletonPoolValidation
             "RightUpperArm", "RightLowerArm", "RightHand", "LeftUpperLeg", "LeftLowerLeg",
             "LeftThumb", "LeftIndex", "LeftMiddle", "LeftRing", "LeftFoot", "LeftToes",
             "RightUpperLeg", "RightLowerLeg", "RightThumb", "RightIndex", "RightMiddle",
-            "RightRing", "RightFoot", "RightToes"
+            "RightRing", "RightPinky", "RightFoot", "RightToes", "LeftPinky"
         };
         var missingBones = requiredBones.Where(name => !names.Contains(name)).ToArray();
         if (missingBones.Length > 0)
@@ -77,26 +77,26 @@ public static class SkeletonPoolValidation
         }
 
         Material[] materials = AssetDatabase.LoadAllAssetsAtPath(ModelPath).OfType<Material>().ToArray();
-        Material redEyeMaterial = materials.FirstOrDefault(material =>
-            material.name.IndexOf("Cursed_Red_Eyes", StringComparison.OrdinalIgnoreCase) >= 0);
-        if (redEyeMaterial == null)
+        Material socketMaterial = materials.FirstOrDefault(material =>
+            material.name.IndexOf("Deep_Eye_Sockets", StringComparison.OrdinalIgnoreCase) >= 0);
+        if (socketMaterial == null)
         {
-            throw new InvalidOperationException("FBX does not contain the expected Cursed_Red_Eyes material.");
+            throw new InvalidOperationException("FBX does not contain the expected dark eye-socket material.");
         }
-        if (!renderers.Any(renderer => renderer.sharedMaterials.Contains(redEyeMaterial)))
+        if (!renderers.Any(renderer => renderer.sharedMaterials.Contains(socketMaterial)))
         {
-            throw new InvalidOperationException("The red eye material is not assigned to the skinned mesh.");
+            throw new InvalidOperationException("The dark eye-socket material is not assigned to the skinned mesh.");
         }
-        Color eyeColor = redEyeMaterial.HasProperty("_BaseColor")
-            ? redEyeMaterial.GetColor("_BaseColor")
-            : redEyeMaterial.HasProperty("_Color") ? redEyeMaterial.GetColor("_Color") : Color.clear;
-        if (eyeColor.r <= eyeColor.g * 2f || eyeColor.r <= eyeColor.b * 2f)
+        Color socketColor = socketMaterial.HasProperty("_BaseColor")
+            ? socketMaterial.GetColor("_BaseColor")
+            : socketMaterial.HasProperty("_Color") ? socketMaterial.GetColor("_Color") : Color.white;
+        if (socketColor.maxColorComponent > 0.1f)
         {
-            throw new InvalidOperationException($"Eye material is not red: {eyeColor}.");
+            throw new InvalidOperationException($"Eye-socket material is not dark: {socketColor}.");
         }
 
         Debug.Log($"FBX validation: {transforms.Length} transforms, {renderers.Length} skinned renderers, " +
-                  $"{materials.Length} materials; required bones and red eye material found.");
+                  $"{materials.Length} materials; required bones and dark eye sockets found.");
     }
 
     private static bool HasCompleteRigidWeights(SkinnedMeshRenderer renderer)

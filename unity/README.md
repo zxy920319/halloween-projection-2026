@@ -1,8 +1,10 @@
 # Unity Halloween skeleton integration
 
 This folder contains the protocol-compatible Unity scripts, Blender source,
-supplied model outputs, and a tested character prefab. To regenerate from the
-repository root:
+and rigged, anatomically detailed 1.8 m skeleton model inspired by the
+reference's front, side, and back views. The model includes an articulated
+skull, full rib cage, vertebral column, pelvic ring, hands, and feet. To
+regenerate the model files from the repository root:
 
 ```powershell
 blender --background --python .\unity\Blender\generate_halloween_skeleton.py -- --out .\unity\Assets\Models
